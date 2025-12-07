@@ -10,11 +10,12 @@ const saveSession = action(async (workoutId: string, formData: FormData) => {
     const value = formData.get('value') as string
     const selectedLabel = formData.get('selectedLabel') as string
     const successfulStr = formData.get('successful') as string
+    const description = formData.get('description') as string
 
     const label = selectedLabel === NEW_LABEL ? (formData.get('label') as string) : selectedLabel
     const successful = successfulStr === 'on'
 
-    return api.addSession(workoutId, Number(value), successful, label)
+    return api.addSession({ workoutId, value: Number(value), successful, label, description })
 }, 'log')
 
 export default function Log() {
@@ -233,12 +234,21 @@ export default function Log() {
                                 </div>
                             </Show>
 
+                            <div class="mb-4">
+                                <label for="description">Description (optional)</label>
+                                <input
+                                    type="text"
+                                    id="description"
+                                    name="description"
+                                    placeholder="e.g. Felt tired, early morning..."
+                                />
+                            </div>
+
                             <div class="checkbox-wrapper mb-8">
                                 <input
                                     type="checkbox"
                                     id="successful"
                                     name="successful"
-                                    checked={true /** TODO */}
                                 />
                                 <label for="successful">Successful session</label>
                             </div>

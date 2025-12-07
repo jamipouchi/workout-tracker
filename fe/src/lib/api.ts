@@ -1,4 +1,4 @@
-const API_URL = 'https://api.workout-tracker.miquelpuigturon.com';
+const API_URL = import.meta.env.DEV ? 'http://localhost:8787' : 'https://api.workout-tracker.miquelpuigturon.com';
 
 export interface Workout {
     id: string;
@@ -13,6 +13,7 @@ export interface Session {
     value: number;
     successful: boolean;
     label?: string;
+    description?: string;
     date: string;
 }
 
@@ -22,20 +23,20 @@ export const api = {
         if (!res.ok) throw new Error('Failed to fetch workouts');
         return res.json();
     },
-    
+
     getSessions: async (workoutId: string): Promise<Session[]> => {
         const res = await fetch(`${API_URL}/sessions/${workoutId}`);
         if (!res.ok) throw new Error('Failed to fetch sessions');
         return res.json();
     },
 
-    addSession: async (workoutId: string, value: number, successful: boolean, label: string = ''): Promise<Session> => {
+    addSession: async ({ workoutId, value, successful, label = '', description = '' }: { workoutId: string, value: number, successful: boolean, label?: string, description?: string }): Promise<Session> => {
         const res = await fetch(`${API_URL}/sessions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ workout_id: workoutId, value, successful, label })
+            body: JSON.stringify({ workout_id: workoutId, value, successful, label, description })
         });
         if (!res.ok) throw new Error('Failed to add session');
         return res.json();

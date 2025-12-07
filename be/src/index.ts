@@ -8,24 +8,13 @@ type Bindings = {
 const app = new Hono<{ Bindings: Bindings }>();
 
 app.use('/*', cors({
-    origin: 'https://workout-tracker.miquelpuigturon.com'
+    origin: ['https://workout-tracker.miquelpuigturon.com', 'http://localhost:3000']
 }));
 
 app.get('/workouts', async (c) => {
     try {
         const { results } = await c.env.workout_tracker.prepare("SELECT * FROM workouts").all();
         return c.json(results);
-    } catch (e) {
-        return c.json({ error: (e as Error).message }, 500);
-    }
-});
-
-app.get('/workouts/:id', async (c) => {
-    const id = c.req.param('id');
-    try {
-        const workout = await c.env.workout_tracker.prepare("SELECT * FROM workouts WHERE id = ?").bind(id).first();
-        if (!workout) return c.json({ error: 'Workout not found' }, 404);
-        return c.json(workout);
     } catch (e) {
         return c.json({ error: (e as Error).message }, 500);
     }
@@ -39,7 +28,10 @@ app.get('/sessions/:workout_id', async (c) => {
             .bind(workout_id)
             .all();
 
-        return c.json(results);
+        return c.json(results.map((session) => ({
+            ...session,
+            successful: session.successful === 1
+        })));
     } catch (e) {
         return c.json({ error: (e as Error).message }, 500);
     }
@@ -48,7 +40,7 @@ app.get('/sessions/:workout_id', async (c) => {
 app.post('/sessions', async (c) => {
     try {
         const body = await c.req.json();
-        const { workout_id, value, successful, label } = body;
+        const { workout_id, value, successful, label, description } = body;
 
         if (!workout_id || value === undefined || !label) {
             return c.json({ error: 'Missing required fields: workout_id, value, or label' }, 400);
@@ -56,11 +48,11 @@ app.post('/sessions', async (c) => {
 
         const id = crypto.randomUUID();
         const date = new Date().toISOString();
-        const successVal = successful === undefined ? true : successful;
+        const successVal = successful === true;
 
         await c.env.workout_tracker.prepare(
-            "INSERT INTO sessions (id, workout_id, value, label, successful, date) VALUES (?, ?, ?, ?, ?, ?)"
-        ).bind(id, workout_id, value, label, successVal ? 1 : 0, date).run();
+            "INSERT INTO sessions (id, workout_id, value, label, successful, date, description) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        ).bind(id, workout_id, value, label, successVal ? 1 : 0, date, description || null).run();
 
         const newSession = {
             id,
@@ -68,6 +60,7 @@ app.post('/sessions', async (c) => {
             value,
             successful: successVal,
             label,
+            description,
             date
         };
 

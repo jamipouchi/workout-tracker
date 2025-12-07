@@ -92,7 +92,17 @@ function SessionChart(props: { sessions: () => Session[] | undefined; workout: W
                     responsive: true,
                     maintainAspectRatio: false,
                     animation: false,
-                    plugins: { legend: { labels: { color: '#0f172a' } } },
+                    plugins: {
+                        legend: { labels: { color: '#0f172a' } },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: (context) => {
+                                    const raw = context[0].raw as any
+                                    return raw?.description ? [raw.description] : []
+                                },
+                            },
+                        },
+                    },
                     scales: {
                         y: {
                             beginAtZero: true,
@@ -111,26 +121,40 @@ function SessionChart(props: { sessions: () => Session[] | undefined; workout: W
         const groups: Record<string, Session[]> = {}
         const labelsSet = new Set<string>()
 
+        // Normalize date to YYYY-MM-DD to handle both short dates and ISO timestamps consistently
+        const getDateKey = (dateStr: string) => dateStr.split('T')[0]
+
         data.forEach((s) => {
             const labelKey = s.label || 'Default'
             if (!groups[labelKey]) {
                 groups[labelKey] = []
             }
             groups[labelKey].push(s)
-            labelsSet.add(new Date(s.date).toDateString())
+            labelsSet.add(getDateKey(s.date))
         })
 
         const sortedDates = Array.from(labelsSet).sort(
             (a, b) => new Date(a).getTime() - new Date(b).getTime()
         )
 
-        const colors = ['#0284c7', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6']
+        const colors = ['#0284c7', '#10b981', '#f59e0b', '#8b5cf6']
 
         const datasets = Object.keys(groups).map((key, index) => {
             const groupData = groups[key]
-            const dataPoints = sortedDates.map((dateStr) => {
-                const session = groupData.find((s) => new Date(s.date).toDateString() === dateStr)
-                return session ? session.value : null
+            const dataPoints = sortedDates.map((dateKey) => {
+                const session = groupData.find((s) => getDateKey(s.date) === dateKey)
+                const x = new Date(dateKey + 'T00:00:00').toLocaleDateString()
+                return session
+                    ? {
+                        x,
+                        y: session.value,
+                        description: session.description,
+                        successful: session.successful,
+                    }
+                    : {
+                        x,
+                        y: null,
+                    }
             })
             const color = colors[index % colors.length]
             return {
@@ -141,6 +165,16 @@ function SessionChart(props: { sessions: () => Session[] | undefined; workout: W
                 data: dataPoints,
                 borderColor: color,
                 backgroundColor: color,
+                pointBackgroundColor: (ctx: any) => {
+                    const val = ctx.raw
+                    if (val && !val.successful) return '#ef4444'
+                    return color
+                },
+                pointBorderColor: (ctx: any) => {
+                    const val = ctx.raw
+                    if (val && !val.successful) return '#ef4444'
+                    return color
+                },
                 tension: 0.3,
                 fill: false,
                 spanGaps: true,
