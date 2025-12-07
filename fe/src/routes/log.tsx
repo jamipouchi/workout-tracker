@@ -165,23 +165,25 @@ export default function Log() {
             <h1>Log Workout</h1>
 
             <div class="card mb-8">
-                <div class="mb-4">
-                    <label for="workout">Select Workout</label>
-                    <select
-                        id="workout"
-                        value={selectedWorkoutId() ?? ''}
-                        onChange={(e) => setSelectedWorkoutId(e.currentTarget.value)}
-                    >
-                        <option value="" disabled>
-                            -- Choose a workout --
-                        </option>
-                        <For each={workouts()}>
-                            {(workout) => <option value={workout.id}>{workout.name}</option>}
-                        </For>
-                    </select>
-                </div>
+                <Suspense fallback={<div>Loading workouts...</div>}>
+                    <div class="mb-4">
+                        <label for="workout">Select Workout</label>
+                        <select
+                            id="workout"
+                            value={selectedWorkoutId() ?? ''}
+                            onChange={(e) => setSelectedWorkoutId(e.currentTarget.value)}
+                        >
+                            <option value="" disabled>
+                                -- Choose a workout --
+                            </option>
+                            <For each={workouts()}>
+                                {(workout) => <option value={workout.id}>{workout.name}</option>}
+                            </For>
+                        </select>
+                    </div>
+                </Suspense>
 
-                <Show when={selectedWorkout()}>
+                <Show when={!workouts.loading && selectedWorkout()}>
                     {(workout) => (
                         <form ref={form} action={saveSession.with(workout().id)} method="post" class="mt-4">
                             <div class="mb-4">
@@ -258,6 +260,6 @@ export default function Log() {
                     )}
                 </Show>
             </div>
-        </div>
+        </div >
     )
 }
