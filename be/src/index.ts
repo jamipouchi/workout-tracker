@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 
 type Bindings = {
     workout_tracker: D1Database;
+    API_KEY: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -10,6 +11,14 @@ const app = new Hono<{ Bindings: Bindings }>();
 app.use('/*', cors({
     origin: ['https://workout-tracker.miquelpuigturon.com', 'http://localhost:3000']
 }));
+
+app.use('/*', async (c, next) => {
+    const apiKey = c.req.header('X-API-Key');
+    if (!apiKey || apiKey !== c.env.API_KEY) {
+        return c.json({ error: 'Unauthorized' }, 401);
+    }
+    await next();
+});
 
 app.get('/workouts', async (c) => {
     try {

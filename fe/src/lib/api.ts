@@ -1,5 +1,23 @@
 const API_URL = import.meta.env.DEV ? 'http://localhost:8787' : 'https://api.workout-tracker.miquelpuigturon.com';
 
+const getApiKey = (): string | null => {
+    return localStorage.getItem('workout_tracker_api_key');
+};
+
+const getHeaders = (includeContentType = false): HeadersInit => {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        throw new Error('No API key found');
+    }
+    const headers: HeadersInit = {
+        'X-API-Key': apiKey
+    };
+    if (includeContentType) {
+        headers['Content-Type'] = 'application/json';
+    }
+    return headers;
+};
+
 export interface Workout {
     id: string;
     name: string;
@@ -19,13 +37,17 @@ export interface Session {
 
 export const api = {
     getWorkouts: async (): Promise<Workout[]> => {
-        const res = await fetch(`${API_URL}/workouts`);
+        const res = await fetch(`${API_URL}/workouts`, {
+            headers: getHeaders()
+        });
         if (!res.ok) throw new Error('Failed to fetch workouts');
         return res.json();
     },
 
     getSessions: async (workoutId: string): Promise<Session[]> => {
-        const res = await fetch(`${API_URL}/sessions/${workoutId}`);
+        const res = await fetch(`${API_URL}/sessions/${workoutId}`, {
+            headers: getHeaders()
+        });
         if (!res.ok) throw new Error('Failed to fetch sessions');
         return res.json();
     },
@@ -33,9 +55,7 @@ export const api = {
     addSession: async ({ workoutId, value, successful, label = '', description = '' }: { workoutId: string, value: number, successful: boolean, label?: string, description?: string }): Promise<Session> => {
         const res = await fetch(`${API_URL}/sessions`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: getHeaders(true),
             body: JSON.stringify({ workout_id: workoutId, value, successful, label, description })
         });
         if (!res.ok) throw new Error('Failed to add session');
