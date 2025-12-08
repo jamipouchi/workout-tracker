@@ -1,18 +1,25 @@
-import { createSignal, createEffect, onCleanup, Show, For, Suspense, createResource } from 'solid-js'
+import { createSignal, createEffect, onCleanup, Show, For, Suspense } from 'solid-js'
 import { api, type Workout, type Session } from '~/lib/api'
 import Chart from 'chart.js/auto'
 import PageHeader from '~/components/PageHeader'
+import { useQuery } from '@tanstack/solid-query'
 
 export default function View() {
-    const [workouts] = createResource(() => api.getWorkouts(), { initialValue: [], ssrLoadFrom: 'initial' })
+    const workoutsQuery = useQuery(() => ({
+        queryKey: ['workouts'],
+        queryFn: api.getWorkouts,
+        staleTime: Infinity
+    }))
     const [selectedWorkoutId, setSelectedWorkoutId] = createSignal('')
+    const selectedWorkout = () => workoutsQuery.data?.find((w) => w.id === selectedWorkoutId())
 
-    const [sessions] = createResource(selectedWorkoutId, async (wid) => {
-        if (!wid) return []
-        return api.getSessions(wid)
-    }, { initialValue: [], ssrLoadFrom: 'initial' })
+    const sessionsQuery = useQuery(() => ({
+        queryKey: ['sessions', selectedWorkoutId()],
+        queryFn: () => api.getSessions(selectedWorkoutId()!),
+        enabled: !!selectedWorkoutId(),
+        staleTime: Infinity
+    }))
 
-    const selectedWorkout = () => workouts()?.find((w) => w.id === selectedWorkoutId())
 
     return (
         <div class="container" style={{ 'max-width': '900px' }}>
@@ -32,7 +39,7 @@ export default function View() {
                             <option value="" disabled>
                                 -- Choose a workout --
                             </option>
-                            <For each={workouts()}>
+                            <For each={workoutsQuery.data}>
                                 {(workout) => <option value={workout.id}>{workout.name}</option>}
                             </For>
                         </select>
@@ -57,14 +64,14 @@ export default function View() {
                     }
                 >
                     <Show
-                        when={selectedWorkoutId()}
+                        when={selectedWorkout() && sessionsQuery.data}
                         fallback={
                             <p style={{ 'text-align': 'center', color: '#666', 'margin-top': '2rem' }}>
                                 Select a workout to view progress.
                             </p>
                         }
                     >
-                        <SessionChart sessions={sessions} workout={selectedWorkout()} />
+                        <SessionChart sessions={sessionsQuery.data!} workout={selectedWorkout()!} />
                     </Show>
                 </Suspense>
             </div>
@@ -72,7 +79,7 @@ export default function View() {
     )
 }
 
-function SessionChart(props: { sessions: () => Session[] | undefined; workout: Workout | undefined }) {
+function SessionChart(props: { sessions: Session[]; workout: Workout }) {
     let chartInstance: Chart | undefined
     onCleanup(() => chartInstance?.destroy())
 
@@ -187,7 +194,7 @@ function SessionChart(props: { sessions: () => Session[] | undefined; workout: W
     }
 
     createEffect(() => {
-        const data = props.sessions()
+        const data = props.sessions
         const workout = props.workout
         const canvas = canvasRef()
 
@@ -201,14 +208,14 @@ function SessionChart(props: { sessions: () => Session[] | undefined; workout: W
             <div
                 class="chart-container"
                 style={{
-                    display: props.sessions()?.length ? 'block' : 'none',
+                    display: props.sessions?.length ? 'block' : 'none',
                     'margin-top': '1.5rem',
                 }}
             >
                 <canvas ref={setCanvasRef}></canvas>
             </div>
 
-            <Show when={!props.sessions() || props.sessions()?.length === 0}>
+            <Show when={!props.sessions || props.sessions?.length === 0}>
                 <p style={{ 'text-align': 'center', color: '#666', 'margin-top': '2rem' }}>
                     No sessions recorded yet.
                 </p>

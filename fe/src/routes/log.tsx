@@ -1,57 +1,50 @@
-import { createSignal, Show, For, Suspense, createEffect, onCleanup, createResource } from 'solid-js'
+import { createSignal, Show, For, Suspense, createEffect, onCleanup } from 'solid-js'
 import { Portal } from 'solid-js/web'
-import { action, useSubmission } from '@solidjs/router'
+import { action } from '@solidjs/router'
 import { api } from '~/lib/api'
 import PageHeader from '~/components/PageHeader'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/solid-query'
 
 const NEW_LABEL = 'new'
 
-const saveSession = action(async (workoutId: string, formData: FormData) => {
-    const value = formData.get('value') as string
-    const selectedLabel = formData.get('selectedLabel') as string
-    const successfulStr = formData.get('successful') as string
-    const description = formData.get('description') as string
-
-    const label = selectedLabel === NEW_LABEL ? (formData.get('label') as string) : selectedLabel
-    const successful = successfulStr === 'on'
-
-    return api.addSession({ workoutId, value: Number(value), successful, label, description })
-}, 'log')
-
 export default function Log() {
-    const [workouts] = createResource(() => api.getWorkouts(), { initialValue: [], ssrLoadFrom: 'initial' })
+    const workoutsQuery = useQuery(() => ({
+        queryKey: ['workouts'],
+        queryFn: api.getWorkouts,
+        staleTime: Infinity
+    }))
     const [selectedWorkoutId, setSelectedWorkoutId] = createSignal<string | null>(null)
-    const selectedWorkout = () => workouts()?.find((w) => w.id === selectedWorkoutId())
+    const selectedWorkout = () => workoutsQuery.data?.find((w) => w.id === selectedWorkoutId())
 
-    const [existingLabels] = createResource(selectedWorkoutId, async (workoutId) => {
-        if (!workoutId) {
-            return []
+    const sessions = useQuery(() => ({
+        queryKey: ['sessions', selectedWorkoutId()],
+        queryFn: () => api.getSessions(selectedWorkoutId()!),
+        enabled: !!selectedWorkoutId(),
+        staleTime: Infinity
+    }))
+    const existingLabels = () => {
+        if (!sessions.data) {
+            return
         }
-        const sessions = await api.getSessions(workoutId)
-        if (!sessions) {
-            return []
-        }
-        const labels = new Set(sessions.map((session) => session.label))
+        const labels = new Set(sessions.data.map((session) => session.label))
         return Array.from(labels)
             .filter((l): l is string => !!l)
             .sort()
-    }, { initialValue: [], ssrLoadFrom: 'initial' })
-
+    }
     const [selectedLabel, setSelectedLabel] = createSignal('')
 
     createEffect(() => {
-        if (selectedWorkoutId()) {
-            setSelectedLabel('')
-        }
+        selectedWorkoutId();
+        setSelectedLabel('')
     })
 
     let form!: HTMLFormElement
-
-    const submission = useSubmission(saveSession)
     const [showSuccessNotification, setShowSuccessNotification] = createSignal(false)
-
-    createEffect(() => {
-        if (submission.result) {
+    const queryClient = useQueryClient()
+    const createSessionMutation = useMutation(() => ({
+        mutationFn: api.addSession,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['sessions', selectedWorkoutId()] })
             setSelectedWorkoutId(null)
             form.reset()
             setShowSuccessNotification(true)
@@ -60,7 +53,19 @@ export default function Log() {
             }, 2_000)
             onCleanup(() => clearTimeout(timer))
         }
-    })
+    }))
+
+    const saveSession = action(async (workoutId: string, formData: FormData) => {
+        const value = formData.get('value') as string
+        const selectedLabel = formData.get('selectedLabel') as string
+        const successfulStr = formData.get('successful') as string
+        const description = formData.get('description') as string
+
+        const label = selectedLabel === NEW_LABEL ? (formData.get('label') as string) : selectedLabel
+        const successful = successfulStr === 'on'
+
+        return createSessionMutation.mutateAsync({ workoutId, value: Number(value), successful, label, description })
+    }, 'log')
 
     return (
         <div class="container" style={{ 'max-width': '900px' }}>
@@ -176,14 +181,14 @@ export default function Log() {
                             <option value="" disabled>
                                 -- Choose a workout --
                             </option>
-                            <For each={workouts()}>
+                            <For each={workoutsQuery.data}>
                                 {(workout) => <option value={workout.id}>{workout.name}</option>}
                             </For>
                         </select>
                     </div>
                 </Suspense>
 
-                <Show when={!workouts.loading && selectedWorkout()}>
+                <Show when={!workoutsQuery.isLoading && selectedWorkout()}>
                     {(workout) => (
                         <form ref={form} action={saveSession.with(workout().id)} method="post" class="mt-4">
                             <div class="mb-4">
