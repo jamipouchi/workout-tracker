@@ -105,7 +105,7 @@ function SessionChart(props: { sessions: () => Session[] | undefined; workout: W
                     },
                     scales: {
                         y: {
-                            beginAtZero: true,
+                            beginAtZero: false,
                             grid: { color: '#e2e8f0' },
                             ticks: { color: '#64748b' },
                             title: { display: true, text: workout.unit },
