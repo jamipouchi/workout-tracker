@@ -186,7 +186,7 @@ function SessionChart(props: { sessions: Session[]; workout: Workout }) {
                 },
                 pointRadius: 6,
                 pointHoverRadius: 8,
-                showLine: false,
+                showLine: true,
                 fill: false,
             }
         })
