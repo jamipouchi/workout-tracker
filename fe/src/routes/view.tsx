@@ -148,20 +148,22 @@ function SessionChart(props: { sessions: Session[]; workout: Workout }) {
 
         const datasets = Object.keys(groups).map((key, index) => {
             const groupData = groups[key]
-            const dataPoints = sortedDates.map((dateKey) => {
-                const session = groupData.find((s) => getDateKey(s.date) === dateKey)
+            const dataPoints = sortedDates.flatMap((dateKey) => {
+                const sessions = groupData.filter((s) => getDateKey(s.date) === dateKey)
                 const x = new Date(dateKey + 'T00:00:00').toLocaleDateString()
-                return session
-                    ? {
+                return sessions.length > 0
+                    ? sessions.map((session) => ({
                         x,
                         y: session.value,
                         description: session.description,
                         successful: session.successful,
-                    }
-                    : {
+                    }))
+                    : [{
                         x,
-                        y: null,
-                    }
+                        y: null as number | null,
+                        description: undefined as string | undefined,
+                        successful: true,
+                    }]
             })
             const color = colors[index % colors.length]
             return {
@@ -182,9 +184,10 @@ function SessionChart(props: { sessions: Session[]; workout: Workout }) {
                     if (val && !val.successful) return '#ef4444'
                     return color
                 },
-                tension: 0.3,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                showLine: false,
                 fill: false,
-                spanGaps: true,
             }
         })
 
