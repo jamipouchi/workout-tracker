@@ -103,6 +103,14 @@ function SessionChart(props: { sessions: Session[]; workout: Workout }) {
                         legend: { labels: { color: '#0f172a' } },
                         tooltip: {
                             callbacks: {
+                                title: (context) => {
+                                    const raw = context[0].raw as any
+                                    const d = new Date(raw.x)
+                                    const day = String(d.getDate()).padStart(2, '0')
+                                    const month = String(d.getMonth() + 1).padStart(2, '0')
+                                    const year = d.getFullYear()
+                                    return `${day}/${month}/${year}`
+                                },
                                 afterBody: (context) => {
                                     const raw = context[0].raw as any
                                     return raw?.description ? [raw.description] : []
