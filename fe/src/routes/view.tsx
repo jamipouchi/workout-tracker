@@ -117,7 +117,20 @@ function SessionChart(props: { sessions: Session[]; workout: Workout }) {
                             ticks: { color: '#64748b' },
                             title: { display: true, text: workout.unit },
                         },
-                        x: { grid: { color: '#e2e8f0' }, ticks: { color: '#64748b' } },
+                        x: {
+                            type: 'linear',
+                            grid: { color: '#e2e8f0' },
+                            ticks: {
+                                color: '#64748b',
+                                callback: function(value: number) {
+                                    const d = new Date(value)
+                                    const day = String(d.getDate()).padStart(2, '0')
+                                    const month = String(d.getMonth() + 1).padStart(2, '0')
+                                    const year = d.getFullYear()
+                                    return `${day}/${month}/${year}`
+                                },
+                            },
+                        },
                     },
                 },
             })
@@ -126,7 +139,6 @@ function SessionChart(props: { sessions: Session[]; workout: Workout }) {
         if (!chartInstance) return
 
         const groups: Record<string, Session[]> = {}
-        const labelsSet = new Set<string>()
 
         // Normalize date to YYYY-MM-DD to handle both short dates and ISO timestamps consistently
         const getDateKey = (dateStr: string) => dateStr.split('T')[0]
@@ -137,34 +149,22 @@ function SessionChart(props: { sessions: Session[]; workout: Workout }) {
                 groups[labelKey] = []
             }
             groups[labelKey].push(s)
-            labelsSet.add(getDateKey(s.date))
         })
-
-        const sortedDates = Array.from(labelsSet).sort(
-            (a, b) => new Date(a).getTime() - new Date(b).getTime()
-        )
 
         const colors = ['#0284c7', '#10b981', '#f59e0b', '#8b5cf6']
 
         const datasets = Object.keys(groups).map((key, index) => {
             const groupData = groups[key]
-            const dataPoints = sortedDates.flatMap((dateKey) => {
-                const sessions = groupData.filter((s) => getDateKey(s.date) === dateKey)
-                const x = new Date(dateKey + 'T00:00:00').toLocaleDateString()
-                return sessions.length > 0
-                    ? sessions.map((session) => ({
-                        x,
-                        y: session.value,
-                        description: session.description,
-                        successful: session.successful,
-                    }))
-                    : [{
-                        x,
-                        y: null as number | null,
-                        description: undefined as string | undefined,
-                        successful: true,
-                    }]
-            })
+            const dataPoints = groupData.map((session) => {
+                const dateKey = getDateKey(session.date)
+                const x = new Date(dateKey + 'T00:00:00').getTime()
+                return {
+                    x,
+                    y: session.value,
+                    description: session.description,
+                    successful: session.successful,
+                }
+            }).sort((a, b) => a.x - b.x)
             const color = colors[index % colors.length]
             return {
                 label:
@@ -191,7 +191,6 @@ function SessionChart(props: { sessions: Session[]; workout: Workout }) {
             }
         })
 
-        chartInstance.data.labels = sortedDates.map((d) => new Date(d).toLocaleDateString())
         chartInstance.data.datasets = datasets as any
         chartInstance.update()
     }
