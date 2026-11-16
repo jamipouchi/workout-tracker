@@ -1,6 +1,4 @@
-const API_URL = import.meta.env.DEV
-    ? 'http://localhost:8787'
-    : 'https://api.workout-tracker.miquelpuigturon.com'
+const API_URL = import.meta.env.DEV ? 'http://localhost:8787/api' : '/api'
 
 const getApiKey = (): string | null => {
     return localStorage.getItem('workout_tracker_api_key')

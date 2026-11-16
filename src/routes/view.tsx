@@ -130,8 +130,8 @@ function SessionChart(props: { sessions: Session[]; workout: Workout }) {
                             grid: { color: '#e2e8f0' },
                             ticks: {
                                 color: '#64748b',
-                                callback: function(value: number) {
-                                    const d = new Date(value)
+                                callback: (value) => {
+                                    const d = new Date(Number(value))
                                     const day = String(d.getDate()).padStart(2, '0')
                                     const month = String(d.getMonth() + 1).padStart(2, '0')
                                     const year = d.getFullYear()

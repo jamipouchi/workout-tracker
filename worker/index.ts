@@ -6,14 +6,11 @@ type Bindings = {
 	API_KEY: string
 }
 
-const app = new Hono<{ Bindings: Bindings }>()
+// Served under /api on the same origin as the frontend (wrangler.jsonc routes /api/* here).
+const app = new Hono<{ Bindings: Bindings }>().basePath('/api')
 
-app.use(
-	'/*',
-	cors({
-		origin: ['https://workout-tracker.miquelpuigturon.com', 'http://localhost:3000'],
-	})
-)
+// Production is same-origin; CORS only matters for `npm run dev` (vinxi on :3000 calling wrangler on :8787).
+app.use('/*', cors({ origin: 'http://localhost:3000' }))
 
 app.use('/*', async (c, next) => {
 	if (c.req.method === 'OPTIONS' || c.req.method === 'GET') {
