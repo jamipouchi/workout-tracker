@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "workout-tracker",
+	"name": "workout-tracker-frontend",
 	"main": "worker/index.ts",
 	"compatibility_date": "2026-11-01",
 	"observability": {

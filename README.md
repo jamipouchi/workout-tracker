@@ -1,6 +1,6 @@
 # workout-tracker
 
-One Cloudflare Worker (`workout-tracker`) on `workout-tracker.miquelpuigturon.com`:
+One Cloudflare Worker (`workout-tracker-frontend`, deployed by Workers Builds on push to `main`) on `workout-tracker.miquelpuigturon.com`:
 
 - `src/`: SolidStart SPA, built statically to `.output/public` and served as Worker static assets.
 - `worker/index.ts`: Hono API, mounted at `/api/*` (`run_worker_first` in `wrangler.jsonc`). Uses D1 (`workout_tracker`).
