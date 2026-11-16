@@ -1,0 +1,25 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "workout-tracker",
+	"main": "worker/index.ts",
+	"compatibility_date": "2026-11-01",
+	"observability": {
+		"enabled": true
+	},
+	"routes": [{ "pattern": "workout-tracker.miquelpuigturon.com", "custom_domain": true }],
+	// The SolidStart static build. /api/* runs the worker; every other path is
+	// served from here, with unknown paths falling back to index.html.
+	"assets": {
+		"directory": ".output/public",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": ["/api/*"]
+	},
+	"d1_databases": [
+		{
+			"binding": "workout_tracker",
+			"database_name": "workout-tracker",
+			"database_id": "2a73dba9-8727-4d51-b6d7-fdd8864ed019"
+		}
+	]
+	// Secrets: API_KEY (wrangler secret put API_KEY). Locally, put it in .dev.vars.
+}

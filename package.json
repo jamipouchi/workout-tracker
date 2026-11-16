@@ -1,0 +1,32 @@
+{
+  "name": "workout-tracker",
+  "type": "module",
+  "scripts": {
+    "dev": "vinxi dev",
+    "dev:api": "wrangler dev --port 8787",
+    "build": "vinxi build",
+    "preview": "vinxi build && wrangler dev",
+    "deploy": "vinxi build && wrangler deploy",
+    "typecheck": "tsc -p . && tsc -p worker",
+    "migrate:local": "wrangler d1 migrations apply workout-tracker --local"
+  },
+  "dependencies": {
+    "@solidjs/meta": "^0.29.4",
+    "@solidjs/router": "^0.15.0",
+    "@solidjs/start": "^1.1.0",
+    "@tanstack/solid-query": "^5.90.15",
+    "chart.js": "^4.5.1",
+    "hono": "^4.13.18",
+    "solid-js": "^1.9.5",
+    "vinxi": "^0.5.7"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "private": true,
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261116.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.163.0"
+  }
+}
